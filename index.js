@@ -1,5 +1,5 @@
 const express = require('express')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const cors = require('cors')
 require('dotenv').config()
@@ -18,10 +18,18 @@ async function run() {
     try {
         const serviceCollections = client.db("fancy-floss").collection("services");
         app.get('/services', async (req, res) => {
-         const query = {};
-         const cursor = serviceCollections.find(query);
-         const services = await cursor.toArray()
-         res.send(services)
+            const query = {};
+            const cursor = serviceCollections.find(query);
+            const services = await cursor.toArray()
+            res.send(services)
+        })
+        app.get('/service/:id' , async (req, res) => {
+            const id = req.params.id
+            const query = {_id : ObjectId(id)}
+            const result = await serviceCollections.findOne(query)
+
+            res.send(result)
+            console.log(id);
         })
 
 
