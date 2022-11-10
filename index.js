@@ -39,14 +39,34 @@ async function run() {
         })
         app.get('/reviews', async (req, res) => {
             const id = req.query.id
-            const query = { servicesId : id }
+            const query = { servicesId: id }
             const cursor = reviewsCollections.find(query)
             const result = await cursor.toArray()
             res.send(result)
         })
+        app.delete('/deletereview/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await reviewsCollections.deleteOne(query);
+            res.send(result)
+        })
+        app.put('/updatereview/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const reviews = req.body
+            console.log(reviews)
+            const option = { upsert: true }
+            const updateReview = {
+                $set: {
+                    textarea: reviews.textarea
+                }
+            }
+            const result = await reviewsCollections.updateOne(query, updateReview, option);
+            res.send(result)
+        })
         app.get('/myreviews', async (req, res) => {
             const email = req.query.email
-            const query = { email : email }
+            const query = { email: email }
             const cursor = reviewsCollections.find(query)
             const result = await cursor.toArray()
             res.send(result)
