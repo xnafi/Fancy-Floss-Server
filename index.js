@@ -17,19 +17,39 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const serviceCollections = client.db("fancy-floss").collection("services");
+        const reviewsCollections = client.db("fancy-floss").collection("reviews");
         app.get('/services', async (req, res) => {
             const query = {};
             const cursor = serviceCollections.find(query);
             const services = await cursor.toArray()
             res.send(services)
         })
-        app.get('/service/:id' , async (req, res) => {
+        app.get('/service/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id : ObjectId(id)}
+            const query = { _id: ObjectId(id) }
             const result = await serviceCollections.findOne(query)
-
             res.send(result)
-            console.log(id);
+        })
+        app.post('/reviews', async (req, res) => {
+            const userInfo = req.body
+            console.log("🚀 ~ file: index.js ~ line 37 ~ app.post ~ userInfo", userInfo)
+            const result = await reviewsCollections.insertOne(userInfo)
+            res.send(result)
+
+        })
+        app.get('/reviews', async (req, res) => {
+            const id = req.query.id
+            const query = { servicesId : id }
+            const cursor = reviewsCollections.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+        app.get('/myreviews', async (req, res) => {
+            const email = req.query.email
+            const query = { email : email }
+            const cursor = reviewsCollections.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
         })
 
 
