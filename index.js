@@ -1,7 +1,8 @@
 const express = require('express')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
-const cors = require('cors')
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.PORT || 5000
 
@@ -11,6 +12,21 @@ app.use(express.json())
 
 app.get('/', (req, res) => res.send('fancy floss server running'))
 
+function VerifyToken(req, res, next) {
+    const authHeader = req.headers.authorization
+    if (!authHeader) {
+        res.send({ error: 'unauthorize access' })
+    }
+    const token = authHeader.split(' ')[1]
+    jwt.verify(token, process.env.JWT_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.send({ error: 'unauthorize access' })
+        }
+        req.decoded = decoded
+        next()
+    })
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.bwd7cwo.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -18,6 +34,14 @@ async function run() {
     try {
         const serviceCollections = client.db("fancy-floss").collection("services");
         const reviewsCollections = client.db("fancy-floss").collection("reviews");
+
+
+        // jwt token
+        app.post('/jwt', (req, res) => {
+            const user = req.body
+            const token = jwt.sign(user, process.env.JWT_TOKEN, { expiresIn: '1d' })
+            res.send({ token })
+        })
         app.get('/services', async (req, res) => {
             const query = {};
             const cursor = serviceCollections.find(query);
@@ -26,7 +50,6 @@ async function run() {
         })
         app.post('/services', async (req, res) => {
             const userInfo = req.body
-            console.log("🚀 ~ file: index.js ~ line 37 ~ app.post ~ userInfo", userInfo)
             const result = await serviceCollections.insertOne(userInfo)
             res.send(result)
 
@@ -39,7 +62,6 @@ async function run() {
         })
         app.post('/reviews', async (req, res) => {
             const userInfo = req.body
-            console.log("🚀 ~ file: index.js ~ line 37 ~ app.post ~ userInfo", userInfo)
             const result = await reviewsCollections.insertOne(userInfo)
             res.send(result)
 
@@ -61,7 +83,6 @@ async function run() {
             const id = req.params.id
             const query = { _id: ObjectId(id) }
             const reviews = req.body
-            console.log(reviews)
             const option = { upsert: true }
             const updateReview = {
                 $set: {
@@ -71,9 +92,19 @@ async function run() {
             const result = await reviewsCollections.updateOne(query, updateReview, option);
             res.send(result)
         })
-        app.get('/myreviews', async (req, res) => {
+        app.get('/myreviews', VerifyToken, async (req, res) => {
             const email = req.query.email
-            const query = { email: email }
+            const decoded = req.decoded
+          
+            let query = {}
+            if (decoded.email !== req.query.email) {
+                return res.status(403).send({ message: 'unauthorize user' })
+            }
+            if (email) {
+                query = {
+                    email: email
+                }
+            }
             const cursor = reviewsCollections.find(query)
             const result = await cursor.toArray()
             res.send(result)
