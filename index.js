@@ -24,6 +24,13 @@ async function run() {
             const services = await cursor.toArray()
             res.send(services)
         })
+        app.post('/services', async (req, res) => {
+            const userInfo = req.body
+            console.log("🚀 ~ file: index.js ~ line 37 ~ app.post ~ userInfo", userInfo)
+            const result = await serviceCollections.insertOne(userInfo)
+            res.send(result)
+
+        })
         app.get('/service/:id', async (req, res) => {
             const id = req.params.id
             const query = { _id: ObjectId(id) }
@@ -40,7 +47,7 @@ async function run() {
         app.get('/reviews', async (req, res) => {
             const id = req.query.id
             const query = { servicesId: id }
-            const cursor = reviewsCollections.find(query)
+            const cursor = reviewsCollections.find(query).sort({ date: -1 })
             const result = await cursor.toArray()
             res.send(result)
         })
